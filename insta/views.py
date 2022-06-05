@@ -178,4 +178,14 @@ def follow(request,user_to):
   
 
    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-	
+
+
+def comment(request):
+	'''
+	Method that enables a logged in user to comment on an image.
+	'''
+	comment = request.POST.get('comment')
+	comment_made = Comment(comment = comment)
+	comment_made.save()
+	data = {'success':'You have been succesfully commented on this post'}
+	return JsonResponse(data)	
