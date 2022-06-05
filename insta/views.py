@@ -97,4 +97,31 @@ def updateProfile(request):
 		else:
 			form = UpdateProfile()
 
-	return render(request,'accounts/update_profile.html',{"form":form,"title":title})	
+	return render(request,'accounts/update_profile.html',{"form":form,"title":title})
+
+@login_required(login_url='/accounts/login/')
+def single(request,image_id):
+	'''
+	Method that fetches a single post view.
+	'''
+	
+	image = Image.get_image_by_id(image_id)
+	title = image.image_name
+	
+	if request.method == 'POST':
+		form = CreateComment(request.POST)
+		if form.is_valid():
+			comment = form.save(commit = False)
+			comment.image = image
+			comment.profile = request.user
+			comment.save()
+			return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+	else:
+		form = CreateComment()
+
+	is_liked = False
+	if image.likes.filter(id = request.user.id).exists():
+		is_liked = True	
+	comments = Comment.objects.filter(image = image_id)
+	return render(request,'accounts/single.html',{"image":image,"comments":comments,"form":form,"title":title,"is_liked":is_liked})
+	
