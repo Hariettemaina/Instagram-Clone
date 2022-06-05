@@ -157,4 +157,25 @@ def likePost(request,image_id):
 		image.likes.add(request.user)
 		is_liked = True
 	return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+
+
+
+def follow(request,user_to):
+
+   '''
+	Method that enables a user to follow another user.
+	'''
+   user=User.objects.get(id=user_to)
+   
+   is_follow=False
+   if Follow.objects.filter(user_from=request.user,user_to = user).exists():
+       Follow.objects.filter(user_from=request.user,user_to = user).delete()
+       is_follow=False
+   else:
+       Follow(user_from=request.user,user_to = user).save()
+       is_follow=True
+  
+
+   return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 	
