@@ -3,7 +3,7 @@ from django.shortcuts import render,redirect
 from .models import Image,Comment,Profile,User,Follow
 from django.shortcuts import render,redirect
 from django.http  import HttpResponse,Http404,HttpResponseRedirect,JsonResponse
-#from .forms import NewImagePost,CreateComment,UpdateProfile
+from .forms import NewImagePost,CreateComment,UpdateProfile
 from .models import Image,Comment,Profile,User,Follow
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -51,4 +51,50 @@ def profile(request,prof_id):
 	
 
 	return render(request,'accounts/profile.html',{"images":images,"profile":profile,"title":title,"is_follow":is_follow,"followers":followers,"following":following})
+
+@login_required(login_url='/accounts/login/')
+def create(request):
+	'''
+	Method that created an image post
+	'''
+	current_user = request.user
+	profile = Profile.objects.get(user = request.user.id)
+	title = "Create New Post"
+	if request.method == 'POST':
+		form = NewImagePost(request.POST,request.FILES)
+		if form.is_valid():
+			post = form.save(commit =  False)
+			post.profile = current_user
+			post.user_profile = profile
+			post.save()
+			return redirect('profile',current_user.id)
+	else:
+		
+		form = NewImagePost()
+
+	return render(request,'accounts/create_post.html',{"form":form,"title":title})
+@login_required(login_url='/accounts/login/')
+def updateProfile(request):
+	'''
+	Method that updates a user's profile.
+	'''
+	current_user = request.user
 	
+	title = "Update Profile"
+	if request.method == 'POST':
+		if Profile.objects.filter(user_id = current_user).exists():
+			form = UpdateProfile(request.POST,request.FILES,instance = Profile.objects.get(user_id = current_user))
+		else:
+			form = UpdateProfile(request.POST,request.FILES)
+		if form.is_valid():
+			userProfile = form.save(commit = False)
+			userProfile.user = current_user
+			userProfile.save()
+			return redirect('profile',current_user.id)
+	else:
+		if Profile.objects.filter(user_id = current_user).exists():
+			form = UpdateProfile(instance = Profile.objects.get(user_id = current_user))
+		else:
+			form = UpdateProfile()
+
+	return render(request,'accounts/update_profile.html',{"form":form,"title":title})	
