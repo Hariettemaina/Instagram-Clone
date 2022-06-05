@@ -124,4 +124,19 @@ def single(request,image_id):
 		is_liked = True	
 	comments = Comment.objects.filter(image = image_id)
 	return render(request,'accounts/single.html',{"image":image,"comments":comments,"form":form,"title":title,"is_liked":is_liked})
+
+@login_required(login_url='/accounts/login/')
+def search(request):
+	'''
+	Method that searches for users based on their profiles
+	'''
+	if request.GET['search']:
+		search_term = request.GET.get("search")
+		profiles = Profile.objects.filter(user__username__icontains = search_term)
+		message = f"{search_term}"
+
+		return render(request,'accounts/search.html',{"message":message,"profiles":profiles})
+	else:
+		message = "You haven't searched for any item"
+		return render(request,'accounts/search.html',{"message":message})
 	
