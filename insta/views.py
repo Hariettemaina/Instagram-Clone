@@ -189,3 +189,27 @@ def comment(request):
 	comment_made.save()
 	data = {'success':'You have been succesfully commented on this post'}
 	return JsonResponse(data)	
+
+
+def editPost(request,image_id):
+	'''
+	Method that enables a logged in user to edit posts they created.
+	'''
+	current_user = request.user
+	profile = Profile.objects.get(user = request.user.id)
+	image = Image.objects.get(pk = image_id)
+	title = "Update Image Post"
+	if request.method == 'POST':
+		if image:
+			form = NewImagePost(request.POST,request.FILES,instance = image)
+			if form.is_valid():
+				imageUpdate = form.save(commit = False)
+				imageUpdate.profile = current_user
+				imageUpdate.user_profile = profile
+				imageUpdate.save()
+				return redirect('profile',current_user.id)
+	else:
+		form = NewImagePost(instance = image)
+
+	return render(request,'accounts/edit_post.html',{"form":form,"title":title,"image":image})
+	
