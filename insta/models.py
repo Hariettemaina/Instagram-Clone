@@ -1,87 +1,76 @@
+
+  
 from django.db import models
+import datetime as dt
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 # Create your models here.
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    profile_picture = models.ImageField(upload_to='images/', default='default.png')
-    bio = models.TextField(max_length=500, default="My Bio", blank=True)
-    name = models.CharField(blank=True, max_length=120)
-    location = models.CharField(max_length=60, blank=True)
+	bio = models.CharField(max_length = 300,blank = True,default = 'Awesome Bio Will Appear Here')
+	profile_pic = models.ImageField(upload_to = 'profile/', blank = True,default = '../static/images/default.png')
+	user = models.ForeignKey(User, on_delete = models.CASCADE)
+	
 
-    def __str__(self):
-        return f'{self.user.username} Profile'
+	def __str__(self):
+		return self.user
 
-    @receiver(post_save, sender=User)
-    def create_user_profile(sender, instance, created, **kwargs):
-        if created:
-            Profile.objects.create(user=instance)
+class Image(models.Model):
+	
+	image_name = models.CharField(max_length = 60, blank = True)
+	image_caption = models.CharField(max_length = 60, blank = True)
+	created_at = models.DateTimeField(auto_now_add = True)
+	profile = models.ForeignKey(User)
+	user_profile = models.ForeignKey(Profile)
+	likes = models.ManyToManyField(User,related_name = 'likes', blank = True)
+	image = models.ImageField(upload_to = 'images/', blank = True)
 
-    @receiver(post_save, sender=User)
-    def save_user_profile(sender, instance, **kwargs):
-        instance.profile.save()
+	@classmethod
+	def save_image(self):
+		self.save()
 
-    def save_profile(self):
-        self.user
+	@classmethod
+	def delete_image(self):
+		self.delete()
 
-    def delete_profile(self):
-        self.delete()
+	@classmethod
+	def update_caption(cls,id,caption):
+		updated_caption = cls.objects.filter(pk = id).update(image_caption = caption)
+		return updated_caption
 
-    @classmethod
-    def search_profile(cls, name):
-        return cls.objects.filter(user__username__icontains=name).all()
+	@classmethod
+	def get_image_by_id(cls,image_id):
+		image = cls.objects.get(id = image_id)
+		return image
+	def total_likes(self):
+		self.likes.count()
 
+	def __str__(self):
+		return self.image_name
 
-class Post(models.Model):
-    image = models.ImageField(upload_to='posts/')
-    name = models.CharField(max_length=250, blank=True)
-    caption = models.CharField(max_length=250, blank=True)
-    likes = models.ManyToManyField(User, related_name='likes', blank=True, )
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='posts')
-    created = models.DateTimeField(auto_now_add=True, null=True)
-
-    class Meta:
-        ordering = ["-pk"]
-
-    def get_absolute_url(self):
-        return f"/post/{self.id}"
-
-    @property
-    def get_all_comments(self):
-        return self.comments.all()
-
-    def save_image(self):
-        self.save()
-
-    def delete_image(self):
-        self.delete()
-
-    def total_likes(self):
-        return self.likes.count()
-
-    def __str__(self):
-        return f'{self.user.name} Post'
-    
-    
-    
 class Comment(models.Model):
-    comment = models.TextField()
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='comments')
-    created = models.DateTimeField(auto_now_add=True, null=True)
+	comment = models.CharField(max_length = 1000)
+	created_at = models.DateTimeField(auto_now_add = True)
+	image = models.ForeignKey(Image)
+	profile = models.ForeignKey(User)
 
-    def __str__(self):
-        return f'{self.user.name} Post'
+	def __str__(self):
+		return self.profile
 
-    class Meta:
-        ordering = ["-pk"]
-
+#Add the following field to User dynamically
+def get_first_name(self):
+    return self.first_name
 
 class Follow(models.Model):
-    follower = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='following')
-    followed = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='followers')
-
+    user_from = models.ForeignKey(User,related_name='rel_from_set')
+    user_to = models.ForeignKey(User, related_name='rel_to_set')
+  
     def __str__(self):
-        return f'{self.follower} Follow'
+        return '{} follows {}'.format(self.user_from, self.user_to)
+
+
+# Add following field to User dynamically
+User.add_to_class('following',
+                  models.ManyToManyField('self',
+                                         through=Follow,
+                                         related_name='followers',
+                                         symmetrical=False))
