@@ -1,215 +1,114 @@
-
-from django.shortcuts import render,redirect
-from .models import Image,Comment,Profile,User,Follow
-from django.shortcuts import render,redirect
-from django.http  import HttpResponse,Http404,HttpResponseRedirect,JsonResponse
-from .forms import NewImagePost,CreateComment,UpdateProfile
-from .models import Image,Comment,Profile,User,Follow
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from django.contrib.auth import authenticate, login
+from .models import posts,Likes,Comment,Profile
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
+from .forms import ImageForm,UserCreationForm,CommentForm
+from django.shortcuts import render,redirect, get_object_or_404
 
+from insta.forms import CreateUserForm
+from .models import posts #import photos model
 
+def insta(request):
+    # imports photos and save it in database
+    if request.method == 'POST':  
+        form = CommentForm(request.POST, request.FILES)
+        if form.is_valid():
+            com = form.save(commit=False)
+            com.user = request.user
+            com.save()
+    photo = posts.objects.all().order_by('-id')
+    # adding context 
+    ctx = {'photo':photo}
+    return render(request, 'temps/insta.html', ctx)
+def registerPage(request):
+    form = CreateUserForm()
 
+    if request.method == 'POST':
+        form = CreateUserForm(request.POST)
+        if form.is_valid():
+            form.save()
+            user = form.cleaned_data.get('username')
+            messages.success(request, 'Account was created for ' + user)
+			
+            return redirect('login')
+    context = {'form': form}
+    return render(request, 'accounts/register.html', context)  
+def loginPage(request):
+	if request.user.is_authenticated:
+		return redirect('insta')
+	else:
+		if request.method == 'POST':
+			username = request.POST.get('username')
+			password =request.POST.get('password')
 
+			user = authenticate(request, username=username, password=password)
 
-# Create your views here.
-def index(request):
-	'''
-	Method that fetches all images from all users.
-	'''
-	images = Image.objects.all()
-	title = "Discover"
-	
-	return render(request,'index.html',{"images":images,"title":title})
+			if user is not None:
+				login(request, user)
+				return redirect('/')
+			else:
+				messages.info(request, 'Username OR password is incorrect')
 
-def timeline(request):
-	'''
-	Method that fetches imges from all the users that the current logged in user follows only
-	'''
-	follows = Follow.objects.filter(user_from = request.user.id)
-	images = Image.objects.filter(profile = request.user.following.user_to)
-	return render(request, 'accounts/timeline.html',{"images":images})
-
-
+		context = {}
+		return render(request, 'accounts/login.html', context)  
 @login_required(login_url='/accounts/login/')
-def profile(request,prof_id):
-	'''
-	Method that fetches a users profile page
-	'''
-	user=User.objects.get(pk=prof_id)
-	images = Image.objects.filter(profile = prof_id)
-	title = User.objects.get(pk = prof_id).username
-	profile = Profile.objects.filter(user = prof_id)
-
-	if Follow.objects.filter(user_from=request.user,user_to = user).exists():
-		is_follow = True
-	else:
-		is_follow = False
-
-	followers = Follow.objects.filter(user_to = user).count()
-	following = Follow.objects.filter(user_from = user).count()
-	
-
-	return render(request,'accounts/profile.html',{"images":images,"profile":profile,"title":title,"is_follow":is_follow,"followers":followers,"following":following})
-
+def profile(request):
+    current_user = request.user
+    # get images for the current logged in user
+    image = posts.objects.filter(user_id=current_user.id)
+    # get the profile of the current logged in user
+    profile = Profile.objects.filter(user_id=current_user.id).first()
+    form = ImageForm()
+    if request.method == 'POST':
+        form = ImageForm (request.POST , request.FILES)
+        if form.is_valid():
+            form.instance.user = request.user
+            form.save()
+        redirect('profile')
+    return render(request, 'temps/profile.html', {"image": image, "profile": profile , "form": form})
+    
 @login_required(login_url='/accounts/login/')
-def create(request):
-	'''
-	Method that created an image post
-	'''
-	current_user = request.user
-	profile = Profile.objects.get(user = request.user.id)
-	title = "Create New Post"
-	if request.method == 'POST':
-		form = NewImagePost(request.POST,request.FILES)
-		if form.is_valid():
-			post = form.save(commit =  False)
-			post.profile = current_user
-			post.user_profile = profile
-			post.save()
-			return redirect('profile',current_user.id)
-	else:
-		
-		form = NewImagePost()
+def search_post(request):
+    if 'search' in request.GET and request.GET['search']:
+        search_term = request.GET.get('search').lower()
+        images = posts.search_image_name(search_term)
+        message = f'{search_term}'
 
-	return render(request,'accounts/create_post.html',{"form":form,"title":title})
-@login_required(login_url='/accounts/login/')
-def updateProfile(request):
-	'''
-	Method that updates a user's profile.
-	'''
-	current_user = request.user
-	
-	title = "Update Profile"
-	if request.method == 'POST':
-		if Profile.objects.filter(user_id = current_user).exists():
-			form = UpdateProfile(request.POST,request.FILES,instance = Profile.objects.get(user_id = current_user))
-		else:
-			form = UpdateProfile(request.POST,request.FILES)
-		if form.is_valid():
-			userProfile = form.save(commit = False)
-			userProfile.user = current_user
-			userProfile.save()
-			return redirect('profile',current_user.id)
-	else:
-		if Profile.objects.filter(user_id = current_user).exists():
-			form = UpdateProfile(instance = Profile.objects.get(user_id = current_user))
-		else:
-			form = UpdateProfile()
+        return render(request, 'all-photos/search.html', {'found': message, 'images': images})
+    else:
+        message = 'Not found'
+        return render(request, 'all-photos/search.html', {'danger': message})
+    
+def like_image(request):
+    user = request.user
+    if request.method == 'POST':
+        image_id = request.POST.get('image_id')
+        image_pic =posts.objects.get(id=image_id)
+        if user in image_pic.liked.all():
+            image_pic.liked.add(user)
+        else:
+            image_pic.liked.add(user)    
+            
+        like,created =Likes.objects.get_or_create(user=user, image_id=image_id)
+        if not created:
+            if like.value =='Like':
+               like.value = 'Dislike'
+        else:
+               like.value = 'Like'
 
-	return render(request,'accounts/update_profile.html',{"form":form,"title":title})
+        like.save()       
+    return redirect('insta')
 
-@login_required(login_url='/accounts/login/')
-def single(request,image_id):
-	'''
-	Method that fetches a single post view.
-	'''
-	
-	image = Image.get_image_by_id(image_id)
-	title = image.image_name
-	
-	if request.method == 'POST':
-		form = CreateComment(request.POST)
-		if form.is_valid():
-			comment = form.save(commit = False)
-			comment.image = image
-			comment.profile = request.user
-			comment.save()
-			return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-	else:
-		form = CreateComment()
-
-	is_liked = False
-	if image.likes.filter(id = request.user.id).exists():
-		is_liked = True	
-	comments = Comment.objects.filter(image = image_id)
-	return render(request,'accounts/single.html',{"image":image,"comments":comments,"form":form,"title":title,"is_liked":is_liked})
-
-@login_required(login_url='/accounts/login/')
-def search(request):
-	'''
-	Method that searches for users based on their profiles
-	'''
-	if request.GET['search']:
-		search_term = request.GET.get("search")
-		profiles = Profile.objects.filter(user__username__icontains = search_term)
-		message = f"{search_term}"
-
-		return render(request,'accounts/search.html',{"message":message,"profiles":profiles})
-	else:
-		message = "You haven't searched for any item"
-		return render(request,'accounts/search.html',{"message":message})
-
-
-
-@login_required(login_url='/accounts/login/')
-def likePost(request,image_id):
-	'''
-	Method that likes a post.
-	'''
-	image = Image.objects.get(pk = image_id)
-	
-	is_liked = False
-	if image.likes.filter(id = request.user.id).exists():
-		image.likes.remove(request.user)
-		is_liked = False
-	else:
-		image.likes.add(request.user)
-		is_liked = True
-	return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-
-
-def follow(request,user_to):
-
-   '''
-	Method that enables a user to follow another user.
-	'''
-   user=User.objects.get(id=user_to)
-   
-   is_follow=False
-   if Follow.objects.filter(user_from=request.user,user_to = user).exists():
-       Follow.objects.filter(user_from=request.user,user_to = user).delete()
-       is_follow=False
-   else:
-       Follow(user_from=request.user,user_to = user).save()
-       is_follow=True
-  
-
-   return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-
-
-def comment(request):
-	'''
-	Method that enables a logged in user to comment on an image.
-	'''
-	comment = request.POST.get('comment')
-	comment_made = Comment(comment = comment)
-	comment_made.save()
-	data = {'success':'You have been succesfully commented on this post'}
-	return JsonResponse(data)	
-
-
-def editPost(request,image_id):
-	'''
-	Method that enables a logged in user to edit posts they created.
-	'''
-	current_user = request.user
-	profile = Profile.objects.get(user = request.user.id)
-	image = Image.objects.get(pk = image_id)
-	title = "Update Image Post"
-	if request.method == 'POST':
-		if image:
-			form = NewImagePost(request.POST,request.FILES,instance = image)
-			if form.is_valid():
-				imageUpdate = form.save(commit = False)
-				imageUpdate.profile = current_user
-				imageUpdate.user_profile = profile
-				imageUpdate.save()
-				return redirect('profile',current_user.id)
-	else:
-		form = NewImagePost(instance = image)
-
-	return render(request,'accounts/edit_post.html',{"form":form,"title":title,"image":image})
-	
+@login_required
+def comments(request,image_id):
+  form = CommentForm()
+  image = posts.objects.filter(pk = image_id).first()
+  if request.method == 'POST':
+    form = CommentForm(request.POST)
+    if form.is_valid():
+      comment = form.save(commit = False)
+      comment.user = request.user
+      comment.image = image
+      comment.save() 
+  return redirect('insta')  

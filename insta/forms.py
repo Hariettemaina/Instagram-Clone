@@ -1,19 +1,25 @@
 from django import forms
-from .models import Image,Comment,Profile
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from .models import posts,Comment
 
-class NewImagePost(forms.ModelForm):
+class ImageForm(forms.ModelForm):
+    image = forms.ImageField(widget=forms.FileInput(attrs={
+
+        'id': 'imageform', 'class': 'uploadimage'
+
+    }))
+
     class Meta:
-        model = Image
-        exclude = ['profile','user_profile','likes']
-       
-class UpdateProfile(forms.ModelForm):
-	class Meta:
-		model = Profile
-		fields = ['bio','profile_pic']
-		exclude = ['user']
+        model = posts
+        fields = ['image','title']
 
-class CreateComment(forms.ModelForm):
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model=Comment        
+        fields=['comment']   
+
+class CreateUserForm(UserCreationForm):
 	class Meta:
-		model = Comment
-		fields = ['comment']
-		exclude = ['image','profile']
+		model = User
+		fields = ['username', 'email', 'password1', 'password2']

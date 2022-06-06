@@ -7,6 +7,7 @@ name = "pypi"
 django = "*"
 pillow = "*"
 django-bootstrap3 = "*"
+cloudinary = "*"
 
 [dev-packages]
 
