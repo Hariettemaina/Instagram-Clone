@@ -10,6 +10,7 @@ class ImageForm(forms.ModelForm):
 
     }))
 
+
     class Meta:
         model = posts
         fields = ['image','title']

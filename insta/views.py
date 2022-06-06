@@ -48,7 +48,7 @@ def loginPage(request):
 				login(request, user)
 				return redirect('/')
 			else:
-				messages.info(request, 'Username OR password is incorrect')
+				messages.info(request, 'Username or Password Is Incorrect')
 
 		context = {}
 		return render(request, 'accounts/login.html', context)  
