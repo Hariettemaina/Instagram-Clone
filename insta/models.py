@@ -56,7 +56,6 @@ class Likes(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     value = models.CharField(choices=LIKE_CHOICES,default='like',max_length=10)
     
-    
 
     def _str_(self):
         return self.value
