@@ -1,0 +1,28 @@
+<div class="header">
+    <div class="header-left">
+        <a href="/"><img class="logo" src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png" alt="insta"></a>
+    </div>
+    <div class="header-centre">
+        <input type="text" name="search" placeholder="...search">
+    </div>
+    <div class="header-right">
+        {% if user.is_authenticated %}
+       
+            <button class="btn"><a id="icon" aria-current="page" href="/profile/">Profile</a></button>
+          
+          
+           <button class="btn"><a id="icon" href="/profile" >Add Post</a></button> 
+        
+        <i id="icon" class="bi bi-house-door-fill"></i>
+        <i id="icon" class="bi bi-send"></i>
+        <i id="icon" class="bi bi-plus-square"></i>
+        <i id="icon" class="bi bi-camera-reels"></i>
+        <i id="icon" class="bi bi-heart"></i>
+        <i id="icon" class="bi bi-person-circle"></i>
+        {% else %}
+        <li>
+            <a class='btn btn-default' href="/login">Login</a>
+        </li>
+        {% endif %}
+    </div>
+</div>

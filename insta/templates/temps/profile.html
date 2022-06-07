@@ -1,0 +1,151 @@
+{% extends "temps/base.html" %}
+{% block content %}
+
+<style>
+    
+    .container{
+    overflow: hidden;
+}
+.header{
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    margin-left: 10px;
+}
+.header-centre > input{
+    border-radius: 10px;
+    border-style: none;
+    background-color: rgb(236, 229, 229);
+    outline: none;
+}
+.header-right{
+    margin-right: 10px;
+}
+#icon{
+    margin-left: 10px;
+    font-size: 15px;
+    cursor: pointer;
+}
+/* .posts{
+    
+    flex: 0.7;
+} */
+.avatar {
+    vertical-align: middle;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    display:flex;
+    align-items: center;
+    margin-left: 3px;
+    border: 2px solid red;
+    cursor: pointer;
+  }
+  .avatar > i{
+    display: flex;
+    color:rgb(0, 81, 255);
+    cursor: pointer;
+    justify-content: flex-end;
+  }
+ .icons{
+    font-size: 20px;
+    cursor: pointer;
+ }
+ #icon:hover{
+     color: rgb(255, 0, 0);
+ }
+ .comment > input{
+     border: none !important;
+     outline: none;
+ }
+ .comment > h6{
+    display: flex;
+    color:rgb(0, 81, 255);
+    cursor: pointer;
+    justify-content: flex-end;
+ }
+ .comment{
+    display: flex;
+    align-items: center
+ }
+</style>
+
+<section class="profile-container">
+    <div class=" mt-5">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    {% if profile.profile_photo %}
+                    <img src="{{profile.profile_photo.url}}" alt="" class="card-img-top">
+                    {%else%}
+                    <img src="https://st2.depositphotos.com/1104517/11965/v/600/depositphotos_119659092-stock-illustration-male-avatar-profile-picture-vector.jpg"
+                        class="card-img-top" alt="My profile picture">
+                    {% endif %}
+                    <div class="card-body text-center">
+                        <h4 class="card-text">
+                            {{ user.first_name }} {{ user.last_name }}
+                        </h4>
+                        <p>{{ user.username }}</p>
+                        <p>
+                            {% if profile.bio %}
+                            <small>{{ profile.bio }}</small>
+                            {% else %}
+                            <span class="text-danger">No about me</span>
+                            {% endif %}
+                        </p>
+                        <h6>Joined on: <span class="badge rounded-pill bg-secondary text-white">
+                                {{ user.date_joined|date }} </span></h6>
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        <div class="col-md-12">
+            <div class = "" data-toggle ="modal" data-target="#showPicModal">
+                <button>add photo</button>
+            </div>
+        </div>
+        <h3>My posts</h3>
+        {% for image in image %}
+        <div class="col-md-4">
+            
+                <div class="card mb-4">
+                    <img src="{{ image.image.url }}" class="img-responsive" alt="Image">
+                </div>
+        </div>
+        {% empty %}
+        <div class="col-md-4"></div>
+        <div class="col-md-4">
+            <div class="alert alert-info" role="alert">
+                No posts!
+            </div>
+        </div>
+        {%endfor%}
+        <div class="modal fade" id="showPicModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered mode" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="modalPictureTitle">title</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form }}
+                    <button type="submit">post pic</button>
+                  </form>
+                </div>
+                <div class="modal-footer">
+                    
+                    
+                </div>
+              </div>
+            </div>
+</section>
+
+        
+{% endblock %}
